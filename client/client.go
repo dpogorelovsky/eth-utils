@@ -104,6 +104,7 @@ func (c *Client) Balance(acc string) (string, error) {
 	return bts.String(), nil
 }
 
+// SendFunds sends funds from pkey account to acc account
 func (c *Client) SendFunds(pkey, acc string, amount float64) (string, error) {
 	privateKey, err := crypto.HexToECDSA(pkey)
 	if err != nil {
@@ -124,7 +125,7 @@ func (c *Client) SendFunds(pkey, acc string, amount float64) (string, error) {
 	bigAmount := floatToBigInt(amount)
 
 	txValue := bigAmount
-	//gasLimit := uint64(21000) // in units
+	gasLimit := uint64(21000) // in units
 	gasPrice, err := c.c.SuggestGasPrice(context.Background())
 	if err != nil {
 		return "", fmt.Errorf("c.c.SuggestGasPrice: %w", err)
@@ -132,40 +133,14 @@ func (c *Client) SendFunds(pkey, acc string, amount float64) (string, error) {
 
 	toAddress := common.HexToAddress(acc)
 	var data []byte
-	//tx := types.NewTransaction(nonce, toAddress, txValue, gasLimit, gasPrice, data)
-	ltx := types.LegacyTx{
-		Nonce:    nonce,
-		GasPrice: gasPrice,
-		Gas:      0,
-		To:       &toAddress,
-		Value:    txValue,
-		Data:     data,
-		V:        new(big.Int),
-		R:        new(big.Int),
-		S:        new(big.Int),
-	}
+	tx := types.NewTransaction(nonce, toAddress, txValue, gasLimit, gasPrice, data)
 
-	//ltx := types.DynamicFeeTx{
-	//	ChainID:    nil,
-	//	Nonce:      0,
-	//	GasTipCap:  nil,
-	//	GasFeeCap:  nil,
-	//	Gas:        0,
-	//	To:         nil,
-	//	Value:      nil,
-	//	Data:       nil,
-	//	AccessList: nil,
-	//	V:          nil,
-	//	R:          nil,
-	//	S:          nil,
-	//}
-
-	chainID, err := c.c.NetworkID(context.Background())
+	chainID, err := c.c.ChainID(context.Background())
 	if err != nil {
 		return "", fmt.Errorf("c.c.NetworkID: %w", err)
 	}
 
-	signedTx, err := types.SignTx(types.NewTx(&ltx), types.NewEIP155Signer(chainID), privateKey)
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
 	if err != nil {
 		return "", fmt.Errorf("types.SignTx: %w", err)
 	}
@@ -182,4 +157,13 @@ func (c *Client) SendFunds(pkey, acc string, amount float64) (string, error) {
 	bts.WriteString("===\n")
 
 	return bts.String(), nil
+}
+
+func (c *Client) ChainID() (string, error) {
+	chainID, err := c.c.ChainID(context.Background())
+	if err != nil {
+		return "", err
+	}
+
+	return chainID.String(), err
 }

@@ -1,25 +1,31 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"info/client"
 	"net/http"
 	"strconv"
 )
 
+var hostFlag = flag.String("h", "http://localhost:9545", "host address of ethereum blockchain")
+var localPortFlag = flag.String("p", ":12345", "local port for the HTTP server")
 var cl *client.Client
 
 func main() {
+	flag.Parse()
 
-	cl = client.New("http://localhost:7545")
+	cl = client.New(*hostFlag)
+	fmt.Println("started eth client on ", *hostFlag)
 
 	http.HandleFunc("/latestBlock", latestBlock)
 	http.HandleFunc("/last10tx", last10tx)
 	http.HandleFunc("/balance", balance)
 	http.HandleFunc("/sendEth", sendEth)
+	http.HandleFunc("/chainID", chainID)
 
-	fmt.Println("listening to the port :12345")
-	http.ListenAndServe(":12345", nil)
+	fmt.Printf("local server is running on http://localhost%s", *localPortFlag)
+	http.ListenAndServe(*localPortFlag, nil)
 }
 
 func latestBlock(w http.ResponseWriter, req *http.Request) {
@@ -69,6 +75,14 @@ func sendEth(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	resp, err := cl.SendFunds(pkey, accTo, s)
+	if err != nil {
+		resp = "Error: " + err.Error()
+	}
+	fmt.Fprintf(w, "%s\n", resp)
+}
+
+func chainID(w http.ResponseWriter, req *http.Request) {
+	resp, err := cl.ChainID()
 	if err != nil {
 		resp = "Error: " + err.Error()
 	}
