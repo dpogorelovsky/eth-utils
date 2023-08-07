@@ -9,7 +9,7 @@ import (
 )
 
 var hostFlag = flag.String("h", "http://localhost:9545", "host address of ethereum blockchain")
-var localPortFlag = flag.String("p", ":12345", "local port for the HTTP server")
+var localPortFlag = flag.String("p", "12345", "local port for the HTTP server")
 var cl *client.Client
 
 func main() {
@@ -24,8 +24,12 @@ func main() {
 	http.HandleFunc("/sendEth", sendEth)
 	http.HandleFunc("/chainID", chainID)
 
-	fmt.Printf("local server is running on http://localhost%s", *localPortFlag)
-	http.ListenAndServe(*localPortFlag, nil)
+	fmt.Printf("local server is running on http://localhost:%s\n", *localPortFlag)
+	err := http.ListenAndServe(":"+*localPortFlag, nil)
+	if err != nil {
+		fmt.Println("http server error: ", err.Error())
+	}
+	fmt.Println("stopper sever")
 }
 
 func latestBlock(w http.ResponseWriter, req *http.Request) {
